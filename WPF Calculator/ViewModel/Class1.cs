@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm;
+using System.Globalization;
 
 namespace WPF_Calculator.ViewModel
 {
@@ -21,10 +23,8 @@ namespace WPF_Calculator.ViewModel
         private decimal displayedItem;
 
         private decimal? currentNumber = 0;
-    
 
-        [ObservableProperty]
-        private int inputValue;
+        bool isDecimal = false;
         
         private enum Operators
         {
@@ -40,6 +40,14 @@ namespace WPF_Calculator.ViewModel
         [RelayCommand]
         public void AddNumber(string number)
         {
+            if(isDecimal)
+            {
+                string str = DisplayedItem.ToString();
+                if (!str.Contains(NumberFormatInfo.CurrentInfo.NumberDecimalSeparator))
+                    str += NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
+                DisplayedItem = decimal.Parse(str + number);
+            }
+
             DisplayedItem *= 10;
             DisplayedItem += decimal.Parse(number);
         }
@@ -61,15 +69,20 @@ namespace WPF_Calculator.ViewModel
                 case "*":
                     currentOperator = Operators.Multiplication;
                     break;
+                default:
+                    return;
             }
 
             currentNumber = DisplayedItem;
             DisplayedItem = 0;
+            isDecimal = false;
         }
         
         [RelayCommand]
         public void ShowSum()
         {
+            if (currentNumber == null) return;
+
             switch(currentOperator)
             {
                 case Operators.Addition:
@@ -78,12 +91,15 @@ namespace WPF_Calculator.ViewModel
                     break;
                 case Operators.Subtraction:
                     DisplayedItem = (decimal)(currentNumber - DisplayedItem);
+                    currentNumber = null;
                     break;
                 case Operators.Division:
                     DisplayedItem = (decimal)(currentNumber / DisplayedItem);
+                    currentNumber = null;
                     break;
                 case Operators.Multiplication:
                     DisplayedItem = (decimal)(currentNumber * DisplayedItem);
+                    currentNumber = null;
                     break;
             }
         }
@@ -101,7 +117,34 @@ namespace WPF_Calculator.ViewModel
         {
             DisplayedItem = -DisplayedItem;
         }
-    
+        
+        [RelayCommand]
+        public void Decimal()
+        {
+            isDecimal = true;
+        }
+
+        [RelayCommand]
+        public void ClickOnPercentage()
+        {
+            if (currentNumber is null || currentOperator is null) return;
+
+            switch (currentOperator)
+            {
+                case Operators.Addition:
+                    DisplayedItem = (decimal)(currentNumber + DisplayedItem / 100 * currentNumber);
+                    break;
+                case Operators.Subtraction:
+                    DisplayedItem = (decimal)(currentNumber - DisplayedItem / 100 * currentNumber);
+                    break;
+                case Operators.Multiplication:
+                    DisplayedItem = (decimal)(currentNumber * DisplayedItem / 100);
+                    break;
+                case Operators.Division:
+                    DisplayedItem = (decimal)(currentNumber / DisplayedItem * 100);
+                    break;
+            }
+        }
 
     }
 }
